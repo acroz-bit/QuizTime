@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 
 export type QuizQuestionType = "mcq" | "fill-blank" | "case-study";
 
@@ -55,8 +56,11 @@ const FILL_BLANK_OPTION_POOLS = {
   ]
 } as const;
 
-const DEFAULT_QUESTION_BANK_PATH =
-  "/Users/shaurya./Downloads/FSTE_Complete_Exam_Question_Bank.md";
+const DEFAULT_QUESTION_BANK_PATH = path.join(
+  process.cwd(),
+  "data",
+  "FSTE_Complete_Exam_Question_Bank.md"
+);
 
 const normalizeLineBreaks = (value: string) => value.replace(/\r\n/g, "\n");
 
