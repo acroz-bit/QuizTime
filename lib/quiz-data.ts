@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { TECH_POLICY_WEEK_4_7_QUESTIONS } from "@/lib/tech-policy-week4-7";
+import { TECH_POLICY_WEEK_1_QUESTIONS } from "@/lib/tech-policy-week1";
 
-export type QuizQuestionType = "mcq" | "fill-blank" | "case-study";
+export type QuizQuestionType = "mcq" | "multi-select" | "fill-blank" | "case-study";
 
 export type QuizQuestion = {
   id: string;
@@ -9,8 +11,11 @@ export type QuizQuestion = {
   type: QuizQuestionType;
   prompt: string;
   sectionTitle: string;
+  subject: string;
+  moduleTitle?: string;
   options?: string[];
   correctAnswer: string;
+  answerKey?: string[];
   explanation?: string;
   scenario?: string;
 };
@@ -89,11 +94,32 @@ const getSection = (content: string, startMarker: string, endMarker?: string) =>
   return endIndex === -1 ? fromStart : fromStart.slice(0, endIndex);
 };
 
+const extractPromptFromBlock = (block: string) => {
+  const lines = block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const firstOptionIndex = lines.findIndex((line) => /^[A-D]\.\s+/.test(line));
+  const promptLines = firstOptionIndex === -1 ? lines : lines.slice(0, firstOptionIndex);
+
+  if (promptLines.length === 0) {
+    return "";
+  }
+
+  const [firstLine, ...rest] = promptLines;
+
+  if (/^\*\*Q\d+\.\*\*$/.test(firstLine)) {
+    return cleanText(rest.join(" "));
+  }
+
+  return cleanText([firstLine.replace(/^\*\*Q\d+\.\s*/, ""), ...rest].join(" "));
+};
+
 const parseMcqs = (section: string): QuizQuestion[] => {
   const blocks = section.split(/\n---\n/).map((block) => block.trim());
 
   return blocks.flatMap((block) => {
-    const questionMatch = block.match(/\*\*Q(\d+)\.\s*([\s\S]*?)\*\*/);
+    const questionMatch = block.match(/\*\*Q(\d+)\./);
     const answerMatch = block.match(/\*\*✅ Correct Answer:\s*([A-D])\*\*/);
 
     if (!questionMatch || !answerMatch) {
@@ -111,7 +137,7 @@ const parseMcqs = (section: string): QuizQuestion[] => {
 
     const explanationMatch = block.match(/\*\*Explanation:\*\*\s*([\s\S]*)$/);
     const questionNumber = questionMatch[1];
-    const prompt = cleanText(questionMatch[2]);
+    const prompt = extractPromptFromBlock(block);
     const correctAnswer = answerMatch[1];
 
     return [
@@ -121,8 +147,10 @@ const parseMcqs = (section: string): QuizQuestion[] => {
         type: "mcq",
         prompt,
         sectionTitle: "MCQ",
+        subject: "FSTE",
         options: optionLines.map(cleanText),
         correctAnswer,
+        answerKey: [correctAnswer],
         explanation: explanationMatch ? cleanText(explanationMatch[1]) : undefined
       }
     ];
@@ -155,6 +183,7 @@ const parseCaseStudies = (section: string): QuizQuestion[] => {
         type: "case-study" as const,
         prompt,
         sectionTitle: cleanText(heading),
+        subject: "FSTE",
         scenario,
         correctAnswer: answer
       };
@@ -171,7 +200,9 @@ const parseFillBlanks = (section: string): QuizQuestion[] => {
     type: "fill-blank" as const,
     prompt: cleanText(match[2]),
     sectionTitle: "Fill in the Blank",
-    correctAnswer: cleanText(match[3])
+    subject: "FSTE",
+    correctAnswer: cleanText(match[3]),
+    answerKey: [cleanText(match[3])]
   }));
 };
 
@@ -267,6 +298,8 @@ export const loadQuizQuestions = () => {
   return buildFillBlankOptions([
     ...parseMcqs(mcqSection),
     ...parseCaseStudies(caseSection),
-    ...parseFillBlanks(fillBlankSection)
+    ...parseFillBlanks(fillBlankSection),
+    ...TECH_POLICY_WEEK_1_QUESTIONS,
+    ...TECH_POLICY_WEEK_4_7_QUESTIONS
   ]);
 };

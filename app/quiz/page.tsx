@@ -1,8 +1,5 @@
-import { QuizApp } from "@/components/quiz-app";
-import { loadQuizQuestions } from "@/lib/quiz-data";
+import { QuizSubjectsPage } from "@/components/quiz-subjects-page";
 
 export default function QuizPage() {
-  const questions = loadQuizQuestions();
-
-  return <QuizApp questions={questions} />;
+  return <QuizSubjectsPage />;
 }

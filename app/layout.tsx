@@ -4,8 +4,8 @@ import { CursorEffects } from "@/components/cursor-effects";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "FSTE Quiz App",
-  description: "Interactive quiz app for MCQs, fill in the blanks, and case-study questions."
+  title: "Quiz Time",
+  description: "Interactive quiz platform for FSTE and Tech and Policy question banks."
 };
 
 export default function RootLayout({

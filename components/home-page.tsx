@@ -28,9 +28,9 @@ export function HomePage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <Link href="/" className="inline-flex items-center gap-3" data-cursor-target>
               <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100">
-                FSTE Quize
+                Quiz Time
               </span>
-              <span className="text-sm text-white/60">Foundations of Systems Thinking and Engineering</span>
+              <span className="text-sm text-white/60">FSTE and Tech and Policy practice hub</span>
             </Link>
 
             <div className="flex flex-wrap gap-3">
@@ -39,7 +39,14 @@ export function HomePage() {
                 className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/80 transition hover:bg-white/10"
                 data-cursor-target
               >
-                FSTE Quize
+                FSTE
+              </Link>
+              <Link
+                href="#tech-and-policy"
+                className="rounded-full border border-white/10 px-5 py-3 text-sm text-white/80 transition hover:bg-white/10"
+                data-cursor-target
+              >
+                Tech and Policy
               </Link>
               <Link
                 href="/quiz"
@@ -59,13 +66,13 @@ export function HomePage() {
             <FadeIn>
               <p className="text-sm uppercase tracking-[0.4em] text-cyan-200/85">Exam Practice Platform</p>
               <h1 className="mt-4 max-w-3xl font-display text-5xl font-semibold leading-[1.04] text-white sm:text-6xl">
-                Study once.
+                Quiz Time.
                 <br />
-                Test like it matters.
+                Pick the subject, then open the exact quiz.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-white/74 sm:text-lg">
-                Your question bank now lives inside a polished FSTE practice site with navigation cards, score review,
-                wrong-answer tracking, and quick movement across all sections.
+                Your question bank now lives inside a polished practice site with FSTE and Tech and Policy sections,
+                navigation cards, score review, wrong-answer tracking, and quick movement across all sections.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-4">
@@ -82,7 +89,7 @@ export function HomePage() {
                   className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/85 transition hover:bg-white/10"
                   data-cursor-target
                 >
-                  Explore FSTE Quize
+                  Explore FSTE
                 </a>
               </div>
             </FadeIn>
@@ -96,15 +103,15 @@ export function HomePage() {
                     <p className="mt-2 text-xl font-semibold text-white">Mixed Exam Flow</p>
                   </div>
                   <div className="rounded-2xl border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs font-semibold text-emerald-100">
-                    103 Questions
+                    Mixed Subjects
                   </div>
                 </div>
 
                 <div className="mt-5 grid gap-4">
                   {[
-                    { label: "MCQ", count: "18 loaded", tint: "from-cyan-300/20 to-sky-400/10" },
-                    { label: "Fill in the Blank", count: "50 with options", tint: "from-emerald-300/20 to-lime-300/10" },
-                    { label: "Case Study", count: "35 guided prompts", tint: "from-amber-300/20 to-orange-300/10" }
+                    { label: "FSTE", count: "Core systems thinking bank", tint: "from-cyan-300/20 to-sky-400/10" },
+                    { label: "Tech and Policy", count: "Week 1-3 now included", tint: "from-emerald-300/20 to-lime-300/10" },
+                    { label: "Question Styles", count: "Single, multi-select, blanks, case study", tint: "from-amber-300/20 to-orange-300/10" }
                   ].map((item) => (
                     <div
                       key={item.label}
@@ -120,25 +127,65 @@ export function HomePage() {
           </div>
         </section>
 
+        <section id="tech-and-policy" className="pt-8 pb-20">
+          <FadeIn className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.38em] text-emerald-200/80">Section</p>
+            <h2 className="mt-4 font-display text-4xl font-semibold text-white sm:text-5xl">Tech and Policy</h2>
+            <p className="mt-5 text-base leading-8 text-white/72">
+              Week 1-3 is now part of the quiz flow too, using the same styled format as FSTE while also supporting
+              select-all questions and standard fill in the blanks.
+            </p>
+          </FadeIn>
+
+          <div className="mt-8 rounded-[28px] border border-white/10 bg-white/[0.045] p-5 shadow-glow sm:p-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                <p className="text-sm text-white/55">Module</p>
+                <p className="mt-2 text-xl font-semibold text-white">Week 1-3</p>
+              </div>
+              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                <p className="text-sm text-white/55">Coverage</p>
+                <p className="mt-2 text-xl font-semibold text-white">Tech, security, globalization</p>
+              </div>
+              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                <p className="text-sm text-white/55">Format</p>
+                <p className="mt-2 text-xl font-semibold text-white">Mixed assessment bank</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-4">
+            <Link
+              href="/quiz/tech-and-policy"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950"
+              data-cursor-target
+            >
+              Open Tech and Policy
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            </div>
+          </div>
+        </section>
+
         <section id="fste-quize" className="py-20">
           <FadeIn className="max-w-3xl">
             <p className="text-sm uppercase tracking-[0.38em] text-cyan-200/80">Section</p>
-            <h2 className="mt-4 font-display text-4xl font-semibold text-white sm:text-5xl">FSTE Quize</h2>
+            <h2 className="mt-4 font-display text-4xl font-semibold text-white sm:text-5xl">FSTE</h2>
             <p className="mt-5 text-base leading-8 text-white/72">
               This section introduces the main experience: a dedicated exam-style practice space built around your own
               notes, your own patterns, and a much better revision rhythm than static markdown.
             </p>
           </FadeIn>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
-            {features.map((feature, index) => {
+          <div className="mt-8 rounded-[28px] border border-white/10 bg-white/[0.045] p-5 shadow-glow sm:p-6">
+            <div className="grid gap-4 lg:grid-cols-3">
+              {features.map((feature, index) => {
               const Icon = feature.icon;
 
               return (
                 <FadeIn
                   key={feature.title}
                   delay={index * 0.08}
-                  className="rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-glow"
+                  className="rounded-[22px] border border-white/10 bg-white/5 p-5"
                 >
                   <div className="inline-flex rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-cyan-100">
                     <Icon className="h-6 w-6" />
@@ -148,6 +195,18 @@ export function HomePage() {
                 </FadeIn>
               );
             })}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-4">
+              <Link
+                href="/quiz/fste"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950"
+                data-cursor-target
+              >
+                Open FSTE
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -160,11 +219,11 @@ export function HomePage() {
               </h3>
             </div>
             <Link
-              href="/quiz"
+              href="/quiz/fste"
               className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950"
               data-cursor-target
             >
-              Go to Quiz
+              Open FSTE Quiz
               <BookOpen className="h-4 w-4" />
             </Link>
           </div>
