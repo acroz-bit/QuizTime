@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { CursorEffects } from "@/components/cursor-effects";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
@@ -15,7 +14,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <CursorEffects />
           <div className="relative z-10">{children}</div>
         </ThemeProvider>
       </body>
