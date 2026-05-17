@@ -67,6 +67,12 @@ const DEFAULT_QUESTION_BANK_PATH = path.join(
   "FSTE_Complete_Exam_Question_Bank.md"
 );
 
+const ADVANCED_QUESTION_BANK_PATH = path.join(
+  process.cwd(),
+  "data",
+  "FSTE_Advanced_Exam_Pack.md"
+);
+
 const normalizeLineBreaks = (value: string) => value.replace(/\r\n/g, "\n");
 
 const cleanText = (value: string) =>
@@ -113,6 +119,173 @@ const extractPromptFromBlock = (block: string) => {
   }
 
   return cleanText([firstLine.replace(/^\*\*Q\d+\.\s*/, ""), ...rest].join(" "));
+};
+
+const getOptionLines = (block: string) =>
+  block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^[A-D]\.\s+/.test(line));
+
+const extractExplanation = (block: string) => {
+  const explanationMatch = block.match(/\*\*(?:Trap )?Explanation:\*\*\s*([\s\S]*?)$/);
+  return explanationMatch ? cleanText(explanationMatch[1]) : undefined;
+};
+
+const extractPromptFromLines = (
+  lines: string[],
+  firstOptionIndex: number,
+  labelPattern: RegExp
+) => {
+  const promptLines = lines.slice(0, firstOptionIndex);
+
+  if (promptLines.length === 0) {
+    return "";
+  }
+
+  const [firstLine, ...rest] = promptLines;
+  return cleanText([firstLine.replace(labelPattern, ""), ...rest].join(" "));
+};
+
+const parseAdvancedMcqBlocks = (section: string, labelPrefix: "Q" | "UQ") => {
+  const blocks = section.split(/\n---\n/).map((block) => block.trim());
+
+  return blocks.flatMap((block) => {
+    const questionMatch = block.match(new RegExp(String.raw`\*\*(${labelPrefix}\d+)\.`));
+    const answerMatch = block.match(/✅\s*\*\*Correct Answer:\s*([A-D])/);
+
+    if (!questionMatch || !answerMatch) {
+      return [];
+    }
+
+    const optionLines = getOptionLines(block);
+
+    if (optionLines.length === 0) {
+      return [];
+    }
+
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const firstOptionIndex = lines.findIndex((line) => /^[A-D]\.\s+/.test(line));
+
+    return [
+      {
+        id: `advanced-${questionMatch[1].toLowerCase()}`,
+        questionNumber: questionMatch[1],
+        type: "mcq" as const,
+        prompt: extractPromptFromLines(
+          lines,
+          firstOptionIndex,
+          new RegExp(String.raw`^\*\*${labelPrefix}\d+\.\s*`)
+        ),
+        sectionTitle: "MCQ",
+        subject: "FSTE",
+        options: optionLines.map(cleanText),
+        correctAnswer: answerMatch[1],
+        answerKey: [answerMatch[1]],
+        explanation: extractExplanation(block)
+      }
+    ];
+  });
+};
+
+const parseAdvancedCaseStudies = (section: string): QuizQuestion[] => {
+  const caseBlocks = section
+    .split(/\n## 📌 ADVANCED CASE /)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return caseBlocks.flatMap((caseBlock, caseIndex) => {
+    const firstLineBreak = caseBlock.indexOf("\n");
+    const heading = cleanText(caseBlock.slice(0, firstLineBreak).trim());
+    const body = caseBlock.slice(firstLineBreak).trim();
+    const scenarioMatch = body.match(/\*\*Scenario(?: \(from notes\))?:\*\*\s*([\s\S]*?)\n\n\*\*Sub-Questions:\*\*/);
+    const scenario = scenarioMatch ? cleanText(scenarioMatch[1]) : "";
+    const questionBlocks = body
+      .split(/\n---\n/)
+      .map((block) => block.trim())
+      .filter((block) => /^\*\*\([a-z]\)/.test(block));
+
+    return questionBlocks.flatMap((block) => {
+      const subQuestionMatch = block.match(/^\*\*\(([a-z])\)\s*([\s\S]*?)\*\*/);
+      const answerMatch = block.match(/✅\s*\*\*Correct Answer:\s*([A-D])/);
+
+      if (!subQuestionMatch || !answerMatch) {
+        return [];
+      }
+
+      const optionLines = getOptionLines(block);
+
+      if (optionLines.length === 0) {
+        return [];
+      }
+
+      const lines = block
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const firstOptionIndex = lines.findIndex((line) => /^[A-D]\.\s+/.test(line));
+      const mcqPromptLabelIndex = lines.findIndex((line) =>
+        /^\*\*(?:MCQ Version|Conceptual MCQ):\*\*$/.test(line)
+      );
+
+      const prompt = mcqPromptLabelIndex !== -1
+        ? cleanText(lines.slice(mcqPromptLabelIndex + 1, firstOptionIndex).join(" "))
+        : extractPromptFromLines(lines, firstOptionIndex, /^\*\*\([a-z]\)\s*/);
+      const subLabel = subQuestionMatch[1].toUpperCase();
+
+      return [
+        {
+          id: `advanced-case-${caseIndex + 1}-${subQuestionMatch[1]}`,
+          questionNumber: `Case ${caseIndex + 1}${subLabel}`,
+          type: "mcq" as const,
+          prompt,
+          sectionTitle: heading,
+          subject: "FSTE",
+          scenario,
+          options: optionLines.map(cleanText),
+          correctAnswer: answerMatch[1],
+          answerKey: [answerMatch[1]],
+          explanation: extractExplanation(block)
+        }
+      ];
+    });
+  });
+};
+
+const parseAdvancedFillBlanks = (section: string): QuizQuestion[] => {
+  const blocks = section.split(/\n---\n/).map((block) => block.trim());
+
+  return blocks.flatMap((block) => {
+    const questionMatch = block.match(/\*\*FIB\s+(\d+)\.\*\*\s*([\s\S]*?)$/m);
+    const answerMatch = block.match(/✅\s*\*\*Answer:\s*([A-D])\s*[-–—]\s*([^*\n]+)\*\*/);
+
+    if (!questionMatch || !answerMatch) {
+      return [];
+    }
+
+    const optionLines = getOptionLines(block).map((line) => cleanText(line.replace(/^[A-D]\.\s+/, "")));
+
+    if (optionLines.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        id: `advanced-fib-${questionMatch[1]}`,
+        questionNumber: `FIB ${questionMatch[1]}`,
+        type: "fill-blank" as const,
+        prompt: cleanText(questionMatch[2]),
+        sectionTitle: "Fill in the Blank",
+        subject: "FSTE",
+        options: optionLines,
+        correctAnswer: cleanText(answerMatch[2]),
+        answerKey: [cleanText(answerMatch[2])]
+      }
+    ];
+  });
 };
 
 const parseMcqs = (section: string): QuizQuestion[] => {
@@ -264,7 +437,7 @@ const getFillBlankPool = (prompt: string, correctAnswer: string) => {
 
 const buildFillBlankOptions = (questions: QuizQuestion[]) =>
   questions.map((question, index) => {
-    if (question.type !== "fill-blank") {
+    if (question.type !== "fill-blank" || (question.options?.length ?? 0) > 0) {
       return question;
     }
 
@@ -290,15 +463,42 @@ const buildFillBlankOptions = (questions: QuizQuestion[]) =>
 export const loadQuizQuestions = () => {
   const filePath = process.env.QUIZ_BANK_PATH ?? DEFAULT_QUESTION_BANK_PATH;
   const content = normalizeLineBreaks(fs.readFileSync(filePath, "utf8"));
+  const advancedContent = fs.existsSync(ADVANCED_QUESTION_BANK_PATH)
+    ? normalizeLineBreaks(fs.readFileSync(ADVANCED_QUESTION_BANK_PATH, "utf8"))
+    : "";
 
   const mcqSection = getSection(content, "# SECTION 1", "# SECTION 2");
   const caseSection = getSection(content, "# SECTION 2", "# SECTION 3");
   const fillBlankSection = getSection(content, "# SECTION 3", "# SECTION 4");
+  const advancedMcqSection = getSection(
+    advancedContent,
+    "# PART A",
+    "# PART B"
+  );
+  const advancedCaseSection = getSection(
+    advancedContent,
+    "# PART B",
+    "# PART C"
+  );
+  const advancedFillBlankSection = getSection(
+    advancedContent,
+    "# PART C",
+    "# PART D"
+  );
+  const advancedUltraHardSection = getSection(
+    advancedContent,
+    "# PART D",
+    "# 🗂️ MASTER ANSWER SHEET SUMMARY"
+  );
 
   return buildFillBlankOptions([
     ...parseMcqs(mcqSection),
     ...parseCaseStudies(caseSection),
     ...parseFillBlanks(fillBlankSection),
+    ...parseAdvancedMcqBlocks(advancedMcqSection, "Q"),
+    ...parseAdvancedCaseStudies(advancedCaseSection),
+    ...parseAdvancedFillBlanks(advancedFillBlankSection),
+    ...parseAdvancedMcqBlocks(advancedUltraHardSection, "UQ"),
     ...TECH_POLICY_WEEK_1_QUESTIONS,
     ...TECH_POLICY_WEEK_4_7_QUESTIONS
   ]);

@@ -118,6 +118,7 @@ export function QuizApp({
 }: QuizAppProps) {
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [submitted, setSubmitted] = useState(false);
+  const [visibleFillBlankOptions, setVisibleFillBlankOptions] = useState<Record<string, boolean>>({});
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
   const evaluatedResults = useMemo(
@@ -159,6 +160,13 @@ export function QuizApp({
         [questionId]: nextValue
       };
     });
+  };
+
+  const toggleFillBlankOptions = (questionId: string) => {
+    setVisibleFillBlankOptions((current) => ({
+      ...current,
+      [questionId]: !current[questionId]
+    }));
   };
 
   const jumpToQuestion = (questionId: string) => {
@@ -396,27 +404,41 @@ export function QuizApp({
 
                 {question.type === "fill-blank" ? (
                   <div className="mt-5 space-y-4">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {question.options?.map((option) => {
-                        const selected = userAnswer === option;
+                    {question.options?.length ? (
+                      <div className="space-y-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleFillBlankOptions(question.id)}
+                          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 transition hover:border-cyan-300/25 hover:text-white"
+                        >
+                          {visibleFillBlankOptions[question.id] ? "Hide options" : "Show options"}
+                        </button>
 
-                        return (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() => updateAnswer(question.id, option)}
-                            className={[
-                              "rounded-3xl border px-4 py-4 text-left text-sm font-medium transition",
-                              selected
-                                ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
-                                : "border-white/10 bg-white/5 text-white/80 hover:border-cyan-300/25 hover:text-white"
-                            ].join(" ")}
-                          >
-                            {option}
-                          </button>
-                        );
-                      })}
-                    </div>
+                        {visibleFillBlankOptions[question.id] ? (
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {question.options.map((option) => {
+                              const selected = userAnswer === option;
+
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  onClick={() => updateAnswer(question.id, option)}
+                                  className={[
+                                    "rounded-3xl border px-4 py-4 text-left text-sm font-medium transition",
+                                    selected
+                                      ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
+                                      : "border-white/10 bg-white/5 text-white/80 hover:border-cyan-300/25 hover:text-white"
+                                  ].join(" ")}
+                                >
+                                  {option}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <input
                       type="text"
                       value={typeof userAnswer === "string" ? userAnswer : ""}
