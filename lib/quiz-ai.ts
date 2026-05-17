@@ -55,8 +55,7 @@ type RateLimitConfig = {
   windowMs: number;
 };
 
-const GEMINI_MODEL = "gemini-2.5-flash-lite";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash"] as const;
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 const clampText = (value: unknown, fallback = "", maxLength = 1600) =>
@@ -73,6 +72,29 @@ const clampOptions = (value: unknown) =>
 const compactWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
 
 const uniqueStrings = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+
+const parseJsonFromText = (value: string) => {
+  const trimmed = value.trim();
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+
+    if (fencedMatch) {
+      return JSON.parse(fencedMatch[1]);
+    }
+
+    const objectStart = trimmed.indexOf("{");
+    const objectEnd = trimmed.lastIndexOf("}");
+
+    if (objectStart !== -1 && objectEnd !== -1 && objectEnd > objectStart) {
+      return JSON.parse(trimmed.slice(objectStart, objectEnd + 1));
+    }
+
+    throw new Error("Gemini JSON parsing failed");
+  }
+};
 
 export const getClientIdentifier = (request: Request) => {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -139,44 +161,59 @@ export async function generateGeminiJson<T>({
     throw new Error("Missing GEMINI_API_KEY");
   }
 
-  const response = await fetch(GEMINI_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey
-    },
-    body: JSON.stringify({
-      contents: [
+  let lastError: Error | null = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
-          role: "user",
-          parts: [
-            {
-              text: `${systemInstruction}\n\nInput JSON:\n${JSON.stringify(userPayload, null, 2)}`
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `${systemInstruction}\n\nInput JSON:\n${JSON.stringify(userPayload, null, 2)}`
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature,
+              responseMimeType: "application/json",
+              responseJsonSchema
             }
-          ]
+          }),
+          cache: "no-store"
         }
-      ],
-      generationConfig: {
-        temperature,
-        responseMimeType: "application/json",
-        responseJsonSchema
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+        throw new Error(`Gemini request failed for ${model} with status ${response.status}${errorText ? `: ${errorText}` : ""}`);
       }
-    }),
-    cache: "no-store"
-  });
 
-  if (!response.ok) {
-    throw new Error(`Gemini request failed with status ${response.status}`);
+      const payload = await response.json();
+      const text = extractGeminiText(payload);
+
+      if (!text) {
+        throw new Error(`Gemini response was empty for ${model}`);
+      }
+
+      return parseJsonFromText(text) as T;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown Gemini error");
+      console.error(`[quiz-ai] ${model} failed`, lastError.message);
+    }
   }
 
-  const payload = await response.json();
-  const text = extractGeminiText(payload);
-
-  if (!text) {
-    throw new Error("Gemini response was empty");
-  }
-
-  return JSON.parse(text) as T;
+  throw lastError ?? new Error("Gemini request failed");
 }
 
 export const parseHintRequest = (value: any): HintRequestBody | null => {

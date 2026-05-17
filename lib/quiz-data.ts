@@ -73,7 +73,17 @@ const ADVANCED_QUESTION_BANK_PATH = path.join(
   "FSTE_Advanced_Exam_Pack.md"
 );
 
-const normalizeLineBreaks = (value: string) => value.replace(/\r\n/g, "\n");
+const ADVANCED_TEXT_QUESTION_BANK_PATH = path.join(
+  process.cwd(),
+  "data",
+  "shauyra.txt"
+);
+
+const normalizeLineBreaks = (value: string) =>
+  value
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[\u2028\u2029]/g, "\n");
 
 const cleanText = (value: string) =>
   value
@@ -288,6 +298,179 @@ const parseAdvancedFillBlanks = (section: string): QuizQuestion[] => {
   });
 };
 
+const QUESTION_HEADER_PATTERN = /^\d+[.)]\s*(?:Medium|Hard)(?:-Level MCQs?(?: \(\d+\))?|(?:\s+MCQ)?)?$/;
+const INLINE_NUMBERED_PROMPT_PATTERN = /^\d+\.\s+(?!Medium\b|Hard\b)(.+)$/;
+
+const parseStructuredTextAdvancedQuestions = (content: string): QuizQuestion[] => {
+  const lines = normalizeLineBreaks(content)
+    .split("\n")
+    .map((line) => line.trim());
+  const questions: QuizQuestion[] = [];
+  let index = 0;
+  let sequence = 1;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const inlinePromptMatch = line.match(INLINE_NUMBERED_PROMPT_PATTERN);
+
+    if (
+      !QUESTION_HEADER_PATTERN.test(line) &&
+      !/^\d+\)\s*MCQ$/.test(line) &&
+      !/^\d+\.$/.test(line) &&
+      !inlinePromptMatch
+    ) {
+      index += 1;
+      continue;
+    }
+
+    let cursor = index + 1;
+    const promptLines: string[] = [];
+
+    if (inlinePromptMatch) {
+      promptLines.push(inlinePromptMatch[1]);
+    } else {
+      while (cursor < lines.length && !lines[cursor]) {
+        cursor += 1;
+      }
+
+      if (cursor >= lines.length) {
+        index += 1;
+        continue;
+      }
+
+      if (/^Question:/.test(lines[cursor])) {
+        promptLines.push(lines[cursor].replace(/^Question:\s*/, ""));
+        cursor += 1;
+      } else if (/^Question:?$/.test(lines[cursor])) {
+        cursor += 1;
+      } else if (/^\d+\.$/.test(line)) {
+        promptLines.push(lines[cursor]);
+        cursor += 1;
+      } else {
+        index += 1;
+        continue;
+      }
+    }
+
+    while (cursor < lines.length && !/^A\.\s*/.test(lines[cursor])) {
+      if (lines[cursor]) {
+        promptLines.push(lines[cursor]);
+      }
+      cursor += 1;
+    }
+
+    const options: string[] = [];
+
+    for (const optionLetter of ["A", "B", "C", "D"]) {
+      const optionLine = lines[cursor];
+
+      if (!optionLine || !new RegExp(`^${optionLetter}\\.\\s*`).test(optionLine)) {
+        break;
+      }
+
+      const optionParts = [optionLine];
+      cursor += 1;
+
+      while (
+        cursor < lines.length &&
+        lines[cursor] &&
+        !/^[A-D]\.\s*/.test(lines[cursor]) &&
+        !/^Correct Answer:\s*[A-D]/.test(lines[cursor])
+      ) {
+        optionParts.push(lines[cursor]);
+        cursor += 1;
+      }
+
+      options.push(cleanText(optionParts.join(" ")));
+    }
+
+    if (options.length !== 4) {
+      index += 1;
+      continue;
+    }
+
+    const answerLine = lines[cursor];
+
+    if (!answerLine || !/^Correct Answer:\s*[A-D]/.test(answerLine)) {
+      index += 1;
+      continue;
+    }
+
+    const correctAnswer = answerLine.replace(/^Correct Answer:\s*/, "").trim().charAt(0);
+    cursor += 1;
+
+    const topicLine = lines[cursor] && /^Concept\/Topic Tested:\s*/.test(lines[cursor])
+      ? lines[cursor]
+      : "";
+    const topic = topicLine ? cleanText(topicLine.replace(/^Concept\/Topic Tested:\s*/, "")) : "";
+
+    if (topicLine) {
+      cursor += 1;
+    }
+
+    const difficultyLine = lines[cursor] && /^(?:Difficulty Level|Difficulty):\s*/.test(lines[cursor])
+      ? lines[cursor]
+      : "";
+
+    if (difficultyLine) {
+      cursor += 1;
+    }
+
+    const explanationLabel = lines[cursor] && /^(?:Brief Explanation|Explanation):/.test(lines[cursor])
+      ? lines[cursor]
+      : "";
+    const explanationParts: string[] = [];
+
+    if (explanationLabel) {
+      explanationParts.push(explanationLabel.replace(/^(?:Brief Explanation|Explanation):\s*/, ""));
+      cursor += 1;
+    }
+
+    while (cursor < lines.length) {
+      const nextLine = lines[cursor];
+
+      if (
+        QUESTION_HEADER_PATTERN.test(nextLine) ||
+        /^\d+\)\s*MCQ$/.test(nextLine) ||
+        /^\d+\.$/.test(nextLine) ||
+        /^Medium-Level MCQs/.test(nextLine) ||
+        /^Hard-Level MCQs/.test(nextLine) ||
+        /^Hard Questions$/.test(nextLine) ||
+        /^Based strictly/.test(nextLine) ||
+        /^Strictly generated/.test(nextLine) ||
+        /^Using$/.test(nextLine) ||
+        /^Source:$/.test(nextLine)
+      ) {
+        break;
+      }
+
+      if (nextLine) {
+        explanationParts.push(nextLine);
+      }
+
+      cursor += 1;
+    }
+
+    questions.push({
+      id: `advanced-text-${sequence}`,
+      questionNumber: `Advanced ${sequence}`,
+      type: "mcq",
+      prompt: cleanText(promptLines.join(" ")),
+      sectionTitle: "Advanced Questions",
+      subject: "FSTE",
+      options,
+      correctAnswer,
+      answerKey: [correctAnswer],
+      explanation: explanationParts.length > 0 ? cleanText(explanationParts.join(" ")) : undefined
+    });
+
+    sequence += 1;
+    index = cursor;
+  }
+
+  return questions;
+};
+
 const parseMcqs = (section: string): QuizQuestion[] => {
   const blocks = section.split(/\n---\n/).map((block) => block.trim());
 
@@ -466,6 +649,9 @@ export const loadQuizQuestions = () => {
   const advancedContent = fs.existsSync(ADVANCED_QUESTION_BANK_PATH)
     ? normalizeLineBreaks(fs.readFileSync(ADVANCED_QUESTION_BANK_PATH, "utf8"))
     : "";
+  const advancedTextContent = fs.existsSync(ADVANCED_TEXT_QUESTION_BANK_PATH)
+    ? normalizeLineBreaks(fs.readFileSync(ADVANCED_TEXT_QUESTION_BANK_PATH, "utf8"))
+    : "";
 
   const mcqSection = getSection(content, "# SECTION 1", "# SECTION 2");
   const caseSection = getSection(content, "# SECTION 2", "# SECTION 3");
@@ -499,6 +685,7 @@ export const loadQuizQuestions = () => {
     ...parseAdvancedCaseStudies(advancedCaseSection),
     ...parseAdvancedFillBlanks(advancedFillBlankSection),
     ...parseAdvancedMcqBlocks(advancedUltraHardSection, "UQ"),
+    ...parseStructuredTextAdvancedQuestions(advancedTextContent),
     ...TECH_POLICY_WEEK_1_QUESTIONS,
     ...TECH_POLICY_WEEK_4_7_QUESTIONS
   ]);
