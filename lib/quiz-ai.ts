@@ -50,6 +50,18 @@ export type AskResponseBody = {
   answer: string;
 };
 
+export class QuizAiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status = 500, code?: string) {
+    super(message);
+    this.name = "QuizAiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 type RateLimitConfig = {
   limit: number;
   windowMs: number;
@@ -196,24 +208,43 @@ export async function generateGeminiJson<T>({
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
-        throw new Error(`Gemini request failed for ${model} with status ${response.status}${errorText ? `: ${errorText}` : ""}`);
+        const isQuotaLimit =
+          response.status === 429 ||
+          /RESOURCE_EXHAUSTED|quota|free tier|rate limit/i.test(errorText);
+
+        if (isQuotaLimit) {
+          throw new QuizAiError(
+            "Free tier limit reached. Please try again later.",
+            429,
+            "FREE_TIER_LIMIT_REACHED"
+          );
+        }
+
+        throw new QuizAiError(
+          `Gemini request failed for ${model} with status ${response.status}${errorText ? `: ${errorText}` : ""}`,
+          response.status
+        );
       }
 
       const payload = await response.json();
       const text = extractGeminiText(payload);
 
       if (!text) {
-        throw new Error(`Gemini response was empty for ${model}`);
+        throw new QuizAiError(`Gemini response was empty for ${model}`);
       }
 
       return parseJsonFromText(text) as T;
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error("Unknown Gemini error");
+      lastError = error instanceof Error ? error : new QuizAiError("Unknown Gemini error");
       console.error(`[quiz-ai] ${model} failed`, lastError.message);
+
+      if (lastError instanceof QuizAiError && lastError.code === "FREE_TIER_LIMIT_REACHED") {
+        throw lastError;
+      }
     }
   }
 
-  throw lastError ?? new Error("Gemini request failed");
+  throw lastError ?? new QuizAiError("Gemini request failed");
 }
 
 export const parseHintRequest = (value: any): HintRequestBody | null => {

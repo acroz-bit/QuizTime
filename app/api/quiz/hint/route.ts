@@ -5,6 +5,7 @@ import {
   generateGeminiJson,
   getClientIdentifier,
   parseHintRequest,
+  QuizAiError,
   type HintResponseBody
 } from "@/lib/quiz-ai";
 
@@ -71,7 +72,14 @@ export async function POST(request: Request) {
       hint: result.hint?.trim() || buildHintFallback(body).hint,
       concept: result.concept?.trim() || body.topic || "Core concept"
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof QuizAiError && error.code === "FREE_TIER_LIMIT_REACHED") {
+      return NextResponse.json(
+        { error: "Free tier limit reached. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(buildHintFallback(body));
   }
 }

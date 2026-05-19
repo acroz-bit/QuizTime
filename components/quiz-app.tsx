@@ -271,6 +271,9 @@ export function QuizApp({
   const correctCount = evaluatedResults.filter((item) => item.isCorrect).length;
   const wrongAnswers = evaluatedResults.filter((item) => submitted && !item.isCorrect);
   const attemptedCount = evaluatedResults.filter((item) => hasProvidedAnswer(answers[item.id])).length;
+  const answeredCorrectCount = evaluatedResults.filter(
+    (item) => hasProvidedAnswer(answers[item.id]) && item.isCorrect
+  ).length;
 
   const updateAnswer = (questionId: string, value: string) => {
     setAnswers((current) => ({
@@ -576,8 +579,8 @@ export function QuizApp({
                 <div className="grid grid-cols-4 gap-2">
                 {evaluatedResults.map((question, index) => {
                   const hasAnswer = hasProvidedAnswer(answers[question.id]);
-                  const showWrong = submitted && hasAnswer && !question.isCorrect;
-                  const showCorrect = submitted && hasAnswer && question.isCorrect;
+                  const showWrong = hasAnswer && !question.isCorrect;
+                  const showCorrect = hasAnswer && question.isCorrect;
 
                   return (
                     <button
@@ -640,7 +643,9 @@ export function QuizApp({
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-white/45">Results</p>
                 <p className="mt-2 font-display text-3xl font-semibold text-white">
-                  {submitted ? `${correctCount} / ${questions.length} correct` : "Submit when you're ready"}
+                  {submitted
+                    ? `${correctCount} / ${questions.length} correct`
+                    : `${answeredCorrectCount} / ${attemptedCount || questions.length} correct so far`}
                 </p>
               </div>
               {submitted ? (
@@ -683,7 +688,7 @@ export function QuizApp({
 
                       {aiFeedback.error ? (
                         <p className="rounded-2xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-100/90">
-                          Using fallback feedback because Gemini was unavailable just now.
+                          {aiFeedback.error}
                         </p>
                       ) : null}
 
@@ -785,7 +790,7 @@ export function QuizApp({
           {evaluatedResults.map((question, index) => {
             const userAnswer = answers[question.id];
             const userAnswerText = formatAnswerForAi(question, userAnswer);
-            const showFeedback = submitted;
+            const showFeedback = hasProvidedAnswer(userAnswer);
             const answerCorrect = question.isCorrect;
             const hintState = hintsByQuestion[question.id];
             const askState = askByQuestion[question.id];

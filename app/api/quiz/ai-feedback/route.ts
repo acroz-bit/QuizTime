@@ -5,6 +5,7 @@ import {
   generateGeminiJson,
   getClientIdentifier,
   parseAiFeedbackRequest,
+  QuizAiError,
   type AiFeedbackResponseBody
 } from "@/lib/quiz-ai";
 
@@ -115,7 +116,14 @@ export async function POST(request: Request) {
           ? result.recommendedPractice.map((item) => item.trim()).filter(Boolean)
           : buildAiFeedbackFallback(body).recommendedPractice
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof QuizAiError && error.code === "FREE_TIER_LIMIT_REACHED") {
+      return NextResponse.json(
+        { error: "Free tier limit reached. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(buildAiFeedbackFallback(body));
   }
 }

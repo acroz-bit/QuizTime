@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { QuizQuestion } from "@/lib/quiz-data";
-import { getModuleSlug, getSubjectSlug } from "@/lib/quiz-catalog";
+import { getModuleSlug, getSubjectSlug, TECH_POLICY_MODULES } from "@/lib/quiz-catalog";
 
 export function QuizModuleListPage({
   subject,
@@ -10,7 +10,10 @@ export function QuizModuleListPage({
   subject: string;
   questions: QuizQuestion[];
 }) {
-  const modules = Array.from(new Set(questions.map((question) => question.moduleTitle).filter(Boolean))) as string[];
+  const discoveredModules = Array.from(
+    new Set(questions.map((question) => question.moduleTitle).filter(Boolean))
+  ) as string[];
+  const modules = subject === "Tech and Policy" ? [...TECH_POLICY_MODULES] : discoveredModules;
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -33,20 +36,27 @@ export function QuizModuleListPage({
         </section>
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {modules.map((moduleTitle) => (
-            <Link
-              key={moduleTitle}
-              href={`/quiz/${getSubjectSlug(subject)}/${getModuleSlug(moduleTitle)}`}
-              className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-glow transition hover:border-emerald-300/25 hover:bg-emerald-300/10"
-            >
-              <p className="text-sm text-white/55">Module</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white">{moduleTitle}</h2>
-              <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-emerald-100">
-                Open Questions
-                <ArrowRight className="h-4 w-4" />
-              </p>
-            </Link>
-          ))}
+          {modules.map((moduleTitle) => {
+            const isAvailable = discoveredModules.includes(moduleTitle);
+
+            return (
+              <Link
+                key={moduleTitle}
+                href={`/quiz/${getSubjectSlug(subject)}/${getModuleSlug(moduleTitle)}`}
+                className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-glow transition hover:border-emerald-300/25 hover:bg-emerald-300/10"
+              >
+                <p className="text-sm text-white/55">Module</p>
+                <h2 className="mt-3 text-3xl font-semibold text-white">{moduleTitle}</h2>
+                <p className="mt-3 text-sm text-white/60">
+                  {isAvailable ? "Questions ready" : "Questions not added yet"}
+                </p>
+                <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-emerald-100">
+                  {isAvailable ? "Open Questions" : "Open Module"}
+                  <ArrowRight className="h-4 w-4" />
+                </p>
+              </Link>
+            );
+          })}
         </section>
       </div>
     </main>

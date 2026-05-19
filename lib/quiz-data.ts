@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import { TECH_POLICY_WEEK_4_7_QUESTIONS } from "@/lib/tech-policy-week4-7";
 import { TECH_POLICY_WEEK_1_QUESTIONS } from "@/lib/tech-policy-week1";
+import { TECH_POLICY_WEEK_8_12_QUESTIONS } from "@/lib/tech-policy-week8-12";
+import { TECH_POLICY_WEEK_13_QUESTIONS } from "@/lib/tech-policy-week13";
+import { TECH_POLICY_WEEK_14_QUESTIONS } from "@/lib/tech-policy-week14";
 
 export type QuizQuestionType = "mcq" | "multi-select" | "fill-blank" | "case-study";
 
@@ -687,6 +690,9 @@ export const loadQuizQuestions = () => {
     ...parseAdvancedMcqBlocks(advancedUltraHardSection, "UQ"),
     ...parseStructuredTextAdvancedQuestions(advancedTextContent),
     ...TECH_POLICY_WEEK_1_QUESTIONS,
-    ...TECH_POLICY_WEEK_4_7_QUESTIONS
+    ...TECH_POLICY_WEEK_4_7_QUESTIONS,
+    ...TECH_POLICY_WEEK_8_12_QUESTIONS,
+    ...TECH_POLICY_WEEK_13_QUESTIONS,
+    ...TECH_POLICY_WEEK_14_QUESTIONS
   ]);
 };

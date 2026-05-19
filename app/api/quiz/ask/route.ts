@@ -5,6 +5,7 @@ import {
   generateGeminiJson,
   getClientIdentifier,
   parseAskRequest,
+  QuizAiError,
   type AskResponseBody
 } from "@/lib/quiz-ai";
 
@@ -58,7 +59,14 @@ export async function POST(request: Request) {
     return NextResponse.json({
       answer: result.answer?.trim() || buildAskFallback(body).answer
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof QuizAiError && error.code === "FREE_TIER_LIMIT_REACHED") {
+      return NextResponse.json(
+        { error: "Free tier limit reached. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(buildAskFallback(body));
   }
 }
