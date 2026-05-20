@@ -5,6 +5,7 @@ import { TECH_POLICY_WEEK_1_QUESTIONS } from "@/lib/tech-policy-week1";
 import { TECH_POLICY_WEEK_8_12_QUESTIONS } from "@/lib/tech-policy-week8-12";
 import { TECH_POLICY_WEEK_13_QUESTIONS } from "@/lib/tech-policy-week13";
 import { TECH_POLICY_WEEK_14_QUESTIONS } from "@/lib/tech-policy-week14";
+import { TECH_POLICY_EXTRA_QUESTIONS } from "@/lib/tech-policy-extra-questions";
 
 export type QuizQuestionType = "mcq" | "multi-select" | "fill-blank" | "case-study";
 
@@ -693,6 +694,7 @@ export const loadQuizQuestions = () => {
     ...TECH_POLICY_WEEK_4_7_QUESTIONS,
     ...TECH_POLICY_WEEK_8_12_QUESTIONS,
     ...TECH_POLICY_WEEK_13_QUESTIONS,
-    ...TECH_POLICY_WEEK_14_QUESTIONS
+    ...TECH_POLICY_WEEK_14_QUESTIONS,
+    ...TECH_POLICY_EXTRA_QUESTIONS
   ]);
 };

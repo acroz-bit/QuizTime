@@ -8,7 +8,8 @@ export const MODULE_SLUGS = {
   "Week 4-7": "week-4-7",
   "Week 8-12": "week-8-12",
   "Week 13": "week-13",
-  "Week 14": "week-14"
+  "Week 14": "week-14",
+  "Extra Questions": "extra-questions"
 } as const;
 
 export const TECH_POLICY_MODULES = [
@@ -16,7 +17,8 @@ export const TECH_POLICY_MODULES = [
   "Week 4-7",
   "Week 8-12",
   "Week 13",
-  "Week 14"
+  "Week 14",
+  "Extra Questions"
 ] as const;
 
 export const getSubjectFromSlug = (slug: string) => SUBJECT_SLUGS[slug as keyof typeof SUBJECT_SLUGS] ?? null;
